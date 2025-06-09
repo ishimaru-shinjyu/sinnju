@@ -1,11 +1,11 @@
 <!-- 　
 ページ読込直後は、glbモデル非表示。
   クリックorタップorVRゴーグルのトリガーを引くとイベント（startExperience）発生し、BGM再生
-　10秒後に、anime01を表示
-  8.0秒後にanime02に切り替え   
-  さらに7.0秒後にanime03に切り替え
-  さらに5.6秒後にanime04に切り替え
-　モデル表示から30秒後にページ遷移
+　BGMが2秒再生されたら、モデル(anime01)を表示（初期位置0,-0.8,-6、移動無し、1回再生）
+　anime01再生終了後、anime02に切り替え（2回再生、0,-0.8,-6→0,-0.8,-2へ移動、sound05再生）
+　anime02再生終了後、anime03に切り替え（3回再生、移動無し、sound06再生）
+　anime03再生終了後、anime04に切り替え（4回再生、移動無し、sound07再生）
+　anime04再生終了後、自動的に https://seiei.ac.jp/ にページ遷移
  -->
 <!DOCTYPE html>
 <html>
@@ -26,7 +26,7 @@
     <a-entity
       id="myModel"
       gltf-model="./zombie.glb"
-      position="0 0 -5"
+      position="0 -0.8 -6"
       scale="1.5 1.5 1.5"
       visible="false"
     ></a-entity>
@@ -40,6 +40,9 @@
     <a-entity id="sound2" sound="src: url(sound02.mp3); autoplay: false; loop: false;"></a-entity>
     <a-entity id="sound3" sound="src: url(sound03.mp3); autoplay: false; loop: true;"></a-entity>
     <a-entity id="sound4" sound="src: url(sound04.mp3); autoplay: false; loop: false;"></a-entity>
+    <a-entity id="sound5" sound="src: url(sound05.mp3); autoplay: false; loop: false;"></a-entity>
+    <a-entity id="sound6" sound="src: url(sound06.mp3); autoplay: false; loop: false;"></a-entity>
+    <a-entity id="sound7" sound="src: url(sound07.mp3); autoplay: false; loop: false;"></a-entity>
     
     <!-- カメラとカーソル -->
     <a-entity camera look-controls>
@@ -64,12 +67,10 @@
       });
 
       const modelEl = document.getElementById('myModel');
-      const skyEl = document.getElementById('sky');
       const bgmEl = document.getElementById('bgm');
-      const sound1El = document.getElementById('sound1');
-      const sound2El = document.getElementById('sound2');
-      const sound3El = document.getElementById('sound3');
-      const sound4El = document.getElementById('sound4');
+      const sound5El = document.getElementById('sound5');
+      const sound6El = document.getElementById('sound6');
+      const sound7El = document.getElementById('sound7');
       
       let hasStarted = false;
       
@@ -82,7 +83,6 @@
       document.addEventListener('click', startExperience);
       sceneEl.addEventListener('triggerdown', startExperience);
 
-      
       function startExperience() {
         if (hasStarted) return; // 二重実行防止
         hasStarted = true;
@@ -91,72 +91,50 @@
         document.removeEventListener('click', startExperience);
         sceneEl.removeEventListener('triggerdown', startExperience);
 
-        
         console.log('ユーザーアクションを検出しました。BGMを開始します。');
         bgmEl.components.sound.playSound();
-        
-        // 10秒後にモデルを表示してアニメーション開始
+
+        // 2秒後にモデル表示＆anime01再生
         setTimeout(function() {
-          console.log('10秒経過しました。モデルを表示してアニメーション1を開始します。');
-          
-          // モデルを表示状態に変更
+          console.log('2秒経過、モデル表示＆anime01再生');
           modelEl.setAttribute('visible', true);
+          modelEl.setAttribute('position', '0 -0.8 -6');
+          modelEl.setAttribute('animation-mixer', {clip: 'anime01', loop: 'false', repetitions: '1', timeScale: '1', clampWhenFinished: 'true'});
+          // anime01終了後にanime02へ（2.933秒後）
+          setTimeout(playAnime02, 2933);
+        }, 2000);
 
-          //アニメーション1を設定（anime01 , 繰り返し回数2回  再生速度1.15倍）
-          modelEl.setAttribute('animation-mixer', {clip: 'anime01',loop: 'false',repetitions: '2',timeScale: '1.15',clampWhenFinished: 'true'});
-          //アニメーション1の初期表示位置の設定
-          modelEl.setAttribute('position', '0 -1.5 -5');
-          //アニメーション1で移動させる先の座標(0,-1.5,-1)と移動時間の設定8.0秒
-          modelEl.setAttribute('animation__position', 'property: position; to: 0 -1.5 -2; dur: 8000; easing: easeInSine; loop: false');          
+        // anime02再生（2回、移動、sound05）
+        function playAnime02() {
+          console.log('anime02再生開始（2回、移動、sound05）');
+          modelEl.setAttribute('animation-mixer', {clip: 'anime02', loop: 'false', repetitions: '2', timeScale: '1', clampWhenFinished: 'true'});
+          modelEl.setAttribute('animation__position', 'property: position; to: 0 -0.8 -2; dur: 2800; easing: linear; loop: false');
+          sound5El.components.sound.playSound();
+          // anime02終了後にanime03へ（2.800秒×2回＝5600ms後）
+          setTimeout(playAnime03, 5600);
+        }
 
-          // sound01を再生
-          sound1El.components.sound.playSound();
-          
-          // アニメーション開始から30秒後に自動的にページ遷移
+        // anime03再生（3回、移動無し、sound06）
+        function playAnime03() {
+          console.log('anime03再生開始（3回、移動無し、sound06）');
+          modelEl.setAttribute('animation-mixer', {clip: 'anime03', loop: 'false', repetitions: '3', timeScale: '1', clampWhenFinished: 'true'});
+          modelEl.removeAttribute('animation__position');
+          sound6El.components.sound.playSound();
+          // anime03終了後にanime04へ（1.367秒×3回＝4101ms後）
+          setTimeout(playAnime04, 4101);
+        }
+
+        // anime04再生（4回、移動無し、sound07）
+        function playAnime04() {
+          console.log('anime04再生開始（4回、移動無し、sound07）');
+          modelEl.setAttribute('animation-mixer', {clip: 'anime04', loop: 'false', repetitions: '4', timeScale: '1', clampWhenFinished: 'true'});
+          sound7El.components.sound.playSound();
+          // anime04終了後にページ遷移（4.033秒×4回＝16132ms後）
           setTimeout(function() {
-            console.log('30秒経過しました。ページ遷移を実行します。');
-            window.location.href = 'index.html';
-          }, 33400); // 33.4秒後
-          
-          // 8秒後にanime02に切り替え
-          setTimeout(function () {
-            // sound01を停止
-            sound1El.components.sound.stopSound();
-            
-            console.log('アニメーション2(anime02)に切り替えます');
-            //アニメーション2を設定（anime02 , 繰り返し回数2回）
-            modelEl.setAttribute('animation-mixer', {clip: 'anime02',loop: 'false',repetitions: '2',timeScale: '1',clampWhenFinished: 'true'});
-            // sound02を再生
-            sound2El.components.sound.playSound();
-            
-            // さらに7.9秒後にanime03に切り替え
-            setTimeout(function () {
-              // sound02を停止
-              sound2El.components.sound.stopSound();
-
-              console.log('アニメーション3(anime03)に切り替えます');
-              //アニメーション2を設定（anime03 , 繰り返し回数3回）
-              modelEl.setAttribute('animation-mixer', {clip: 'anime03',loop: 'false',repetitions: '3',timeScale: '1',clampWhenFinished: 'true'});              
-              // sound03を再生
-              sound3El.components.sound.playSound();
-              
-              // さらに8.4秒後にanime04に切り替え
-              setTimeout(function () {
-                // sound03を停止
-                sound3El.components.sound.stopSound();
-
-                console.log('アニメーション4(anime04)に切り替えます');
-                //アニメーション2を設定（anime04 , 繰り返し回数1回）
-                modelEl.setAttribute('animation-mixer', {clip: 'anime04',loop: 'false',repetitions: '1',timeScale: '1',clampWhenFinished: 'true'});                
-                // sound04を再生
-                sound4El.components.sound.playSound();
-              }, 8400); // 8.4秒後　anime04表示
-              
-            }, 7900); // 7.9秒後　anime03表示
-            
-          }, 8000); // 8.0秒後　anime02表示
-          
-        }, 10000); // 10秒後　anime01表示
+            console.log('anime04終了、ページ遷移');
+            window.location.href = 'https://seiei.ac.jp/';
+          }, 16132);
+        }
       }
     });
   </script>
